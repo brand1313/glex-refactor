@@ -19,8 +19,9 @@ class ApiServer extends http.Server {
     private currentConns:any;
     private busy:any;
     private stopping:boolean;
+    private routes:Array<any>
 
-    constructor(config:BasicConfig){
+    constructor(config:BasicConfig, routes:Array<any>){
         
         const app:express.Application = express();
         super(app);
@@ -29,6 +30,7 @@ class ApiServer extends http.Server {
         this.currentConns = new Set();
         this.busy = new WeakSet();
         this.stopping = false;
+        this.routes = routes;
 
         if(!ApiServer.instance){
             ApiServer.instance = this;
@@ -77,6 +79,8 @@ class ApiServer extends http.Server {
             if(this.listening) return res.send('<h1>서버 정상 작동 중</h1>');
         });
 
+        this.applyRoutes(this.routes);
+
         this.on('connection',(socket) => {
             this.currentConns.add(socket);
             console.log('클라이언트가 접속했습니다.');
@@ -92,9 +96,14 @@ class ApiServer extends http.Server {
         });
 
         this.app.use(this.errHandler);
-
         
         return this;    
+    }
+
+    applyRoutes(routes:Array<any>):void{
+        routes.forEach(route => {
+            this.app.use('/', route.controller);
+        });
     }
 
     shutdown():void{
@@ -138,9 +147,9 @@ class ApiServer extends http.Server {
 
 }
 
-const init = async(config:BasicConfig):Promise<ApiServer>=> {
+const init = async(config:BasicConfig, routes:Array<any>):Promise<ApiServer>=> {
 
-    const server = new ApiServer(config);
+    const server = new ApiServer(config, routes);
     return await server.start();
     
 }

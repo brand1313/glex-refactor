@@ -12,18 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const server_1 = require("./server");
-const config_1 = __importDefault(require("./lib/config"));
-const controllers_1 = require("./routes/controllers");
-const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    const txController = yield controllers_1.routerInit();
-    const routes = [txController];
-    const basicConfig = yield config_1.default.basicConfig();
-    const server = yield server_1.init(basicConfig, routes);
-    server.listen(basicConfig.port, () => {
-        console.log(`server running at ${basicConfig.port}`);
-    });
-    process.on('SIGTERM', () => server.shutdown());
-    process.on('SIGINT', () => server.shutdown());
+exports.gasInfofunc = void 0;
+const request_promise_1 = __importDefault(require("request-promise"));
+//가스 가격 정보
+const gasInfofunc = () => __awaiter(void 0, void 0, void 0, function* () {
+    const gasPriceInfo = yield request_promise_1.default(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${process.env.ETHER_SCAN_API_KEY}`);
+    const gasPriceInfoJson = JSON.parse(gasPriceInfo);
+    return gasPriceInfoJson;
 });
-main();
+exports.gasInfofunc = gasInfofunc;

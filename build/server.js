@@ -42,7 +42,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv = __importStar(require("dotenv"));
 dotenv.config({ path: path_1.default.join(__dirname, 'environment/.env') });
 class ApiServer extends http_1.default.Server {
-    constructor(config) {
+    constructor(config, routes) {
         const app = express_1.default();
         super(app);
         this.app = app;
@@ -50,6 +50,7 @@ class ApiServer extends http_1.default.Server {
         this.currentConns = new Set();
         this.busy = new WeakSet();
         this.stopping = false;
+        this.routes = routes;
         if (!ApiServer.instance) {
             ApiServer.instance = this;
         }
@@ -89,6 +90,7 @@ class ApiServer extends http_1.default.Server {
                 if (this.listening)
                     return res.send('<h1>서버 정상 작동 중</h1>');
             });
+            this.applyRoutes(this.routes);
             this.on('connection', (socket) => {
                 this.currentConns.add(socket);
                 console.log('클라이언트가 접속했습니다.');
@@ -102,6 +104,11 @@ class ApiServer extends http_1.default.Server {
             });
             this.app.use(this.errHandler);
             return this;
+        });
+    }
+    applyRoutes(routes) {
+        routes.forEach(route => {
+            this.app.use('/', route.controller);
         });
     }
     shutdown() {
@@ -139,8 +146,8 @@ class ApiServer extends http_1.default.Server {
     }
 }
 exports.ApiServer = ApiServer;
-const init = (config) => __awaiter(void 0, void 0, void 0, function* () {
-    const server = new ApiServer(config);
+const init = (config, routes) => __awaiter(void 0, void 0, void 0, function* () {
+    const server = new ApiServer(config, routes);
     return yield server.start();
 });
 exports.init = init;
