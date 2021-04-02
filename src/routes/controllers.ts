@@ -2,6 +2,8 @@ import express, {Request, Response, NextFunction} from 'express';
 import Web3 from 'web3';
 import { gasInfofunc } from '../lib/data';
 import { GasInfo, FeeTable } from '../lib/interfaces';
+import mysqlConnect from '../lib/dbconn';
+import { Connection } from 'mysql2';
 
 class Controllers {
 
@@ -10,7 +12,7 @@ class Controllers {
     private controller:express.IRouter;
     private infura:string;
     private web3:Web3;
-    
+    private dbConn;
     
     constructor(){
         
@@ -18,16 +20,31 @@ class Controllers {
         // this.infura = `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`
         this.infura = `https://ropsten.infura.io/v3/${process.env.INFURA_KEY_ROPSTEN}`
         this.web3 = new Web3(new Web3.providers.HttpProvider(this.infura));
+        this.dbConn = mysqlConnect();
 
         this.controller.get("/feeTable",this.feeTable);
         this.controller.get("/gasInfo",this.gasInfo);
         this.controller.get("/getEthBalance/:user_account",this.getEthBalance);
+        this.controller.get("/dbtest",this.dbTest);
     
         if(!Controllers.instance){
             Controllers.instance = this;
         }
 
         return Controllers.instance;
+    }
+    
+    dbTest = async (req:Request, res:Response) => {
+        
+        try {
+            const allUser = await this.dbConn.query('SELECT * FROM users');
+            console.log(allUser[0]);
+        } catch (error) {
+            throw new Error(error);
+        } finally {
+            this.dbConn.end();
+        }
+        
     }
 
     gasInfo = async (req:Request, res:Response) => {

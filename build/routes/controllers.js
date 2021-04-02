@@ -16,8 +16,21 @@ exports.routerInit = exports.Controllers = void 0;
 const express_1 = __importDefault(require("express"));
 const web3_1 = __importDefault(require("web3"));
 const data_1 = require("../lib/data");
+const dbconn_1 = __importDefault(require("../lib/dbconn"));
 class Controllers {
     constructor() {
+        this.dbTest = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                const allUser = yield this.dbConn.query('SELECT * FROM users');
+                console.log(allUser[0]);
+            }
+            catch (error) {
+                throw new Error(error);
+            }
+            finally {
+                this.dbConn.end();
+            }
+        });
         this.gasInfo = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const gasPriceInfo = yield data_1.gasInfofunc();
             res.json(gasPriceInfo);
@@ -51,9 +64,11 @@ class Controllers {
         // this.infura = `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`
         this.infura = `https://ropsten.infura.io/v3/${process.env.INFURA_KEY_ROPSTEN}`;
         this.web3 = new web3_1.default(new web3_1.default.providers.HttpProvider(this.infura));
+        this.dbConn = dbconn_1.default();
         this.controller.get("/feeTable", this.feeTable);
         this.controller.get("/gasInfo", this.gasInfo);
         this.controller.get("/getEthBalance/:user_account", this.getEthBalance);
+        this.controller.get("/dbtest", this.dbTest);
         if (!Controllers.instance) {
             Controllers.instance = this;
         }
