@@ -23,3 +23,18 @@ export interface FeeTable {
     readonly MW?: string,
     readonly RW?: string
 }
+
+export interface RawTransaction {
+    nonce : Promise<string>,
+    to  : string,
+    chainId : string,
+    gas : string,
+    gasPrice : string,
+    data?: string,
+    value?: string
+}
+
+export interface GasLimit {
+    SE: string,
+    SG: string 
+}

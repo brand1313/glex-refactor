@@ -6,7 +6,7 @@ const connect = () => {
         host: 'localhost',
         user: 'root',
         password: process.env.MYSQL_PASSWORD,
-        database: 'myapp',
+        database: 'globiex',
         connectionLimit: 4
     });
     return connection.promise();

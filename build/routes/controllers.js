@@ -14,15 +14,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.routerInit = exports.Controllers = void 0;
 const express_1 = __importDefault(require("express"));
-const web3_1 = __importDefault(require("web3"));
+// import Web3 from 'web3';
 const data_1 = require("../lib/data");
 const dbconn_1 = __importDefault(require("../lib/dbconn"));
-class Controllers {
+const web3Conn_1 = require("../lib/web3Conn");
+const signing_1 = require("../lib/signing");
+class Controllers extends web3Conn_1.Web3Conn {
     constructor() {
+        super();
         this.dbTest = (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
-                const allUser = yield this.dbConn.query('SELECT * FROM users');
+                const allUser = yield this.dbConn.query('SELECT * FROM member LIMIT 0,10');
                 console.log(allUser[0]);
+                res.json(allUser[0]);
             }
             catch (error) {
                 throw new Error(error);
@@ -30,6 +34,13 @@ class Controllers {
             finally {
                 this.dbConn.end();
             }
+        });
+        this.getRawTx = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const signUtil = new signing_1.SigningUtil();
+            //get 메소드의 params 또는 쿼리로 보낼 것
+            //post 메소드도 고려
+            console.log(yield signUtil.generateRawTransaction(process.env.OWNER, process.env.OWNER, 'SE', '2'));
+            res.json(yield signUtil.generateRawTransaction(process.env.OWNER, process.env.OWNER, 'SE', '2'));
         });
         this.gasInfo = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const gasPriceInfo = yield data_1.gasInfofunc();
@@ -39,9 +50,9 @@ class Controllers {
             var _a;
             const gasPriceInfo = yield data_1.gasInfofunc();
             const proposeGas = parseInt(((_a = gasPriceInfo.result) === null || _a === void 0 ? void 0 : _a.FastGasPrice) + '000000000');
-            let spendWei_SG = proposeGas * 80000 * 100;
+            let spendWei_SG = proposeGas * parseInt(data_1.gasLimit.SG, 10) * 100;
             let spendEth_SG = (parseFloat(this.web3.utils.fromWei(spendWei_SG.toString(), "ether")) / 100).toString();
-            let spendWei_SE = proposeGas * 21000 * 100;
+            let spendWei_SE = proposeGas * parseInt(data_1.gasLimit.SE, 10) * 100;
             let spendEth_SE = (parseFloat(this.web3.utils.fromWei(spendWei_SE.toString(), "ether")) / 100).toString();
             const feeTable = {
                 SG: (Math.round(parseFloat(spendEth_SG) * 10000) / 10000).toString(),
@@ -61,18 +72,19 @@ class Controllers {
             return this;
         });
         this.controller = express_1.default.Router();
-        // this.infura = `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`
-        this.infura = `https://ropsten.infura.io/v3/${process.env.INFURA_KEY_ROPSTEN}`;
-        this.web3 = new web3_1.default(new web3_1.default.providers.HttpProvider(this.infura));
+        // this.infura = `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}` //메인넷
+        // this.infura = `https://ropsten.infura.io/v3/${process.env.INFURA_KEY_ROPSTEN}` //테스트넷
+        // this.web3 = new Web3(new Web3.providers.HttpProvider(this.infura));
         this.dbConn = dbconn_1.default();
         this.controller.get("/feeTable", this.feeTable);
         this.controller.get("/gasInfo", this.gasInfo);
         this.controller.get("/getEthBalance/:user_account", this.getEthBalance);
         this.controller.get("/dbtest", this.dbTest);
-        if (!Controllers.instance) {
-            Controllers.instance = this;
+        this.controller.get("/getRawTx", this.getRawTx);
+        if (!Controllers.controllerInstance) {
+            Controllers.controllerInstance = this;
         }
-        return Controllers.instance;
+        return Controllers.controllerInstance;
     }
 }
 exports.Controllers = Controllers;

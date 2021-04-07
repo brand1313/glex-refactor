@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.gasInfofunc = void 0;
+exports.gasLimit = exports.gasInfofunc = void 0;
 const request_promise_1 = __importDefault(require("request-promise"));
 //가스 가격 정보
 const gasInfofunc = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -21,3 +21,8 @@ const gasInfofunc = () => __awaiter(void 0, void 0, void 0, function* () {
     return gasPriceInfoJson;
 });
 exports.gasInfofunc = gasInfofunc;
+const gasLimit = {
+    SE: '21000',
+    SG: '80000'
+};
+exports.gasLimit = gasLimit;
