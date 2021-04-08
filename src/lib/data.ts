@@ -11,7 +11,7 @@ const gasInfofunc = async ():Promise<GasInfo> => {
 
 const gasLimit:GasLimit = {
     SE: '21000',
-    SG: '80000'
+    SV: '80000'
 }
 
 export {

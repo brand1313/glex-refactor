@@ -17,6 +17,8 @@ const main = async () => {
         console.log(`server running at ${basicConfig.port}`);
     });
 
+    // server.timeout = 1000;
+
     process.on('SIGTERM', () => server.shutdown());
     process.on('SIGINT', () => server.shutdown());
 }

@@ -3,32 +3,34 @@ import express, {Request, Response, NextFunction} from 'express';
 import { gasInfofunc, gasLimit } from '../lib/data';
 import { GasInfo, FeeTable } from '../lib/interfaces';
 import mysqlConnect from '../lib/dbconn';
-import { Connection } from 'mysql2';
 import { Web3Conn } from '../lib/web3Conn';
-import { SigningUtil } from '../lib/signing';
+import {SigningUtil} from '../lib/signing';
 
 class Controllers extends Web3Conn {
 
     private static controllerInstance:Controllers;
 
     private controller:express.IRouter;
-    // private infura:string;
-    // private web3:Web3;
     private dbConn;
-    
+    private signUtil:SigningUtil;
+
     constructor(){
         super();
         this.controller = express.Router();
-        // this.infura = `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}` //메인넷
-        // this.infura = `https://ropsten.infura.io/v3/${process.env.INFURA_KEY_ROPSTEN}` //테스트넷
-        // this.web3 = new Web3(new Web3.providers.HttpProvider(this.infura));
         this.dbConn = mysqlConnect();
+        this.signUtil = new SigningUtil();
 
+        this.controller.get("/dbtest",this.dbTest);
         this.controller.get("/feeTable",this.feeTable);
         this.controller.get("/gasInfo",this.gasInfo);
         this.controller.get("/getEthBalance/:user_account",this.getEthBalance);
-        this.controller.get("/dbtest",this.dbTest);
-        this.controller.get("/getRawTx", this.getRawTx);
+        this.controller.post("/getrawtx",this.getRawTx);
+        this.controller.post("/getnonce",this.getNextNonce);
+        this.controller.get("/gettokeninfo",this.getToken);
+
+        this.controller.post("/signtransaction",this.getSignedTransaction);
+        this.controller.post("/sendtransaction",this.sendTransaction);
+        
     
         if(!Controllers.controllerInstance){
             Controllers.controllerInstance = this;
@@ -44,7 +46,8 @@ class Controllers extends Web3Conn {
             console.log(allUser[0]);
             res.json(allUser[0]);
         } catch (error) {
-            throw new Error(error);
+            // throw new Error(error.message);
+            console.log(error.message);
         } finally {
             this.dbConn.end();
         }
@@ -52,50 +55,134 @@ class Controllers extends Web3Conn {
     }
 
     getRawTx = async (req:Request, res:Response) => {
-        // const signUtil = new SigningUtil();
+
+        const {sender, receiver, category, amount} = req.body;
         
-        // //get 메소드의 params 또는 쿼리로 보낼 것
-        // //post 메소드도 고려
-        // console.log(await signUtil.generateRawTransaction(process.env.OWNER!, process.env.OWNER!, 'SE', '2'));
-        // res.json(await signUtil.generateRawTransaction(process.env.OWNER!, process.env.OWNER!, 'SE', '2'));   
+        try {
+            const result = await this.signUtil.generateRawTransaction(sender, receiver, category, amount);
+            res.json(result);
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);
+        }
+    }
+
+    getNextNonce = async (req:Request, res:Response) => {
+        const { sender } = req.body;
+
+        try {
+            const nonce = await this.signUtil.getNonce(sender);
+    
+            console.log(nonce);
+            res.json(nonce);
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);
+        }
     }
 
     gasInfo = async (req:Request, res:Response) => {
         
-        const gasPriceInfo:GasInfo = await gasInfofunc();
-        res.json(gasPriceInfo);
+        try {
+            const gasPriceInfo:GasInfo = await gasInfofunc();
+            res.json(gasPriceInfo);
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);   
+        }
 
+    }
+
+    getToken = (req:Request, res:Response) => {
+        const VKFF = this.signUtil.getTokenInfo();
+        console.log(VKFF);
+        return;
     }
 
     feeTable = async (req:Request, res:Response) => {
         
-        const gasPriceInfo:GasInfo = await gasInfofunc();
-        const proposeGas:number = parseInt(gasPriceInfo.result?.FastGasPrice+'000000000');
-        
-        let spendWei_SG:number = proposeGas * parseInt(gasLimit.SG,10) * 100;
-        let spendEth_SG:string = (parseFloat(this.web3.utils.fromWei(spendWei_SG.toString(),"ether")) / 100).toString();
-
-        let spendWei_SE:number = proposeGas * parseInt(gasLimit.SE,10) * 100;
-        let spendEth_SE:string = (parseFloat(this.web3.utils.fromWei(spendWei_SE.toString(),"ether")) / 100).toString();
-
-        const feeTable:FeeTable = {
-            SG : (Math.round(parseFloat(spendEth_SG)*10000)/10000).toString(), //토큰전송 
-            SE : (Math.round(parseFloat(spendEth_SE)*10000)/10000).toString(), //이더전송 
+        try {
+            const gasPriceInfo:GasInfo = await gasInfofunc();
+            const proposeGas:number = parseInt(gasPriceInfo.result?.FastGasPrice+'000000000');
+            
+            let spendWei_SG:number = proposeGas * parseInt(gasLimit.SV,10) * 100;
+            let spendEth_SG:string = (parseFloat(this.web3.utils.fromWei(spendWei_SG.toString(),"ether")) / 100).toString();
+    
+            let spendWei_SE:number = proposeGas * parseInt(gasLimit.SE,10) * 100;
+            let spendEth_SE:string = (parseFloat(this.web3.utils.fromWei(spendWei_SE.toString(),"ether")) / 100).toString();
+    
+            const feeTable:FeeTable = {
+                SG : (Math.round(parseFloat(spendEth_SG)*10000)/10000).toString(), //토큰전송 
+                SE : (Math.round(parseFloat(spendEth_SE)*10000)/10000).toString(), //이더전송 
+            }
+    
+            console.log(feeTable);
+            res.json(feeTable);
+            
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);  
         }
-
-        console.log(feeTable);
-        res.json(feeTable);
     }
     
     getEthBalance = async (req:Request, res:Response) => {
 
         const userAccount:string = req.params.user_account;
-        const ethBalanceWei:string = await this.web3.eth.getBalance(userAccount);
+        
+        try {
+            const ethBalanceWei:string = await this.web3.eth.getBalance(userAccount);
+    
+            const ethBalanceEth:string = await this.web3.utils.fromWei(ethBalanceWei, 'ether');
+    
+            console.log(ethBalanceEth);
+            res.json(ethBalanceEth);
+            
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);
+        }
+    }
 
-        const ethBalanceEth:string = await this.web3.utils.fromWei(ethBalanceWei, 'ether');
+    getSignedTransaction = async (req:Request, res:Response) => {
+        const { sender, receiver, category, amount } = req.body;
+        
+        try {
+            const rawTx  = await this.signUtil.generateRawTransaction(sender, receiver, category, amount);
+            
+            const signedTransaction = await this.signUtil.signTransaction(rawTx!, sender);
+    
+            res.json(signedTransaction);
+        } catch (error) {
+            // throw new Error(error.message);
+            console.log(error.message);
+        }
+    }
 
-        console.log(ethBalanceEth);
-        res.json(ethBalanceEth);
+    sendTransaction = async (req:Request, res:Response) => {
+
+        // req.setTimeout(1000); //이렇게 함으로써 요청마다 개별적으로 타임아웃을 설정할 수 있다.
+        
+        const { sender, receiver, category } = req.body;
+        const amount = req.body.amount + '000000000000000000';
+        
+        try {
+            const rawTx  = await this.signUtil.generateRawTransaction(sender, receiver, category, amount);
+            const signedTransaction = await this.signUtil.signTransaction(rawTx!, sender);
+    
+            const resultOfSendTransaction = await this.signUtil.sendSignTransaction(signedTransaction.rawTransaction);
+            
+            console.log(resultOfSendTransaction);
+            res.json(resultOfSendTransaction);
+        } catch (error) {
+            // throw new Error(error.message);
+
+            if(error.message.indexOf('nonce too low') !== -1){
+                console.error('Error - 낮은 nonce로 인한 에러');
+            }else{
+                console.error(error.message);
+            }
+        }
+
     }
 
     getInstance = async():Promise<Controllers> => {

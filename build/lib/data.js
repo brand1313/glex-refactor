@@ -23,6 +23,6 @@ const gasInfofunc = () => __awaiter(void 0, void 0, void 0, function* () {
 exports.gasInfofunc = gasInfofunc;
 const gasLimit = {
     SE: '21000',
-    SG: '80000'
+    SV: '80000'
 };
 exports.gasLimit = gasLimit;

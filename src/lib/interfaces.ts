@@ -25,9 +25,9 @@ export interface FeeTable {
 }
 
 export interface RawTransaction {
-    nonce : Promise<string>,
+    nonce : number,
     to  : string,
-    chainId : string,
+    chainId : number,
     gas : string,
     gasPrice : string,
     data?: string,
@@ -36,5 +36,5 @@ export interface RawTransaction {
 
 export interface GasLimit {
     SE: string,
-    SG: string 
+    SV: string 
 }

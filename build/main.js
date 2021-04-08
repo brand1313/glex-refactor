@@ -23,6 +23,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     server.listen(basicConfig.port, () => {
         console.log(`server running at ${basicConfig.port}`);
     });
+    // server.timeout = 1000;
     process.on('SIGTERM', () => server.shutdown());
     process.on('SIGINT', () => server.shutdown());
 });
